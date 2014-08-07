@@ -10,6 +10,7 @@ import tachyon.client.RemoteBlockInStreams;
 import tachyon.client.TachyonFS;
 import tachyon.client.TachyonFile;
 import tachyon.client.WriteType;
+import tachyon.org.apache.thrift.TException;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -25,10 +26,12 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 public final class TachyonClient extends DB {
 
-  public static final int Ok = 0;
-  public static final int ServerError = -1;
-  public static final int HttpError = -2;
-  public static final int NoMatchingRecord = -3;
+  private static final int Ok = 0;
+  private static final int ServerError = -1;
+  private static final int HttpError = -2;
+  private static final int NoMatchingRecord = -3;
+
+  private static final char PathSeperator = '/';
 
   private TachyonFS fileSystem;
 
@@ -43,7 +46,18 @@ public final class TachyonClient extends DB {
   }
 
   @Override
-  public int insert(String table, String key, HashMap<String, ByteIterator> values) {
+  public void cleanup() throws DBException {
+    try {
+      fileSystem.close();
+    } catch (TException e) {
+      throw new DBException(e);
+    }
+  }
+
+  @Override
+  public int insert(final String table,
+                    final String key,
+                    final HashMap<String, ByteIterator> values) {
     DataOutputStream stream = null;
     try {
       final TachyonFile file = fileSystem.getFile(path(table, key));
@@ -59,11 +73,10 @@ public final class TachyonClient extends DB {
   }
 
   @Override
-  public int read(
-      final String table,
-      final String key,
-      final Set<String> fields,
-      final HashMap<String, ByteIterator> result) {
+  public int read(final String table,
+                  final String key,
+                  final Set<String> fields,
+                  final HashMap<String, ByteIterator> result) {
     DataInputStream stream = null;
     try {
       final TachyonFile file = fileSystem.getFile(path(table, key));
@@ -79,22 +92,25 @@ public final class TachyonClient extends DB {
   }
 
   @Override
-  public int scan(
-      String table,
-      String startkey,
-      int recordcount,
-      Set<String> fields,
-      Vector<HashMap<String, ByteIterator>> result) {
+  public int scan(final String table,
+                  final String startkey,
+                  final int recordcount,
+                  final Set<String> fields,
+                  final Vector<HashMap<String, ByteIterator>> result) {
+    //TODO what makes sense for scan?
     return Ok;
   }
 
   @Override
-  public int update(String table, String key, HashMap<String, ByteIterator> values) {
+  public int update(final String table,
+                    final String key,
+                    final HashMap<String, ByteIterator> values) {
+    // tachyon overrides as the default...
     return insert(table, key, values);
   }
 
   @Override
-  public int delete(String table, String key) {
+  public int delete(final String table, final String key) {
     try {
       if (!fileSystem.delete(path(table, key), false)) {
         return NoMatchingRecord;
@@ -114,9 +130,8 @@ public final class TachyonClient extends DB {
     return checkNotNull(value, "Error, must specify '" + key + "'");
   }
 
-  private static void writeTo(
-      final DataOutputStream stream,
-      final HashMap<String, ByteIterator> values) throws IOException {
+  private static void writeTo(final DataOutputStream stream,
+                              final HashMap<String, ByteIterator> values) throws IOException {
     stream.writeInt(values.size());
 
     for (final Map.Entry<String, ByteIterator> e : values.entrySet()) {
@@ -128,9 +143,8 @@ public final class TachyonClient extends DB {
     }
   }
 
-  private static void readInto(
-      final DataInputStream stream,
-      final HashMap<String, ByteIterator> result) throws IOException {
+  private static void readInto(final DataInputStream stream,
+                               final HashMap<String, ByteIterator> result) throws IOException {
     final int size = stream.readInt();
     for (int i = 0; i < size; i++) {
       String key = stream.readUTF();
@@ -140,9 +154,8 @@ public final class TachyonClient extends DB {
     }
   }
 
-  private static InputStream createStream(
-      final TachyonFile file,
-      final ReadType readType) throws IOException {
+  private static InputStream createStream(final TachyonFile file, final ReadType readType)
+      throws IOException {
     // need to avoid the local read path
     // https://tachyon.atlassian.net/browse/TACHYON-53
     return RemoteBlockInStreams.create(file, readType, 0);
@@ -153,9 +166,9 @@ public final class TachyonClient extends DB {
   }
 
   private static String path(final String parent, final String child) {
-    return new StringBuilder().
+    return new StringBuilder(parent.length() + child.length() + 1).
         append(parent).
-        append("/").
+        append(PathSeperator).
         append(child).
         toString();
   }
