@@ -163,10 +163,12 @@ public final class TachyonClient extends DB {
 
   private static void log(final Exception e, final String msg) {
     System.err.println(msg + ": " + e.getMessage());
+    e.printStackTrace();
   }
 
   private static String path(final String parent, final String child) {
-    return new StringBuilder(parent.length() + child.length() + 1).
+    return new StringBuilder(parent.length() + child.length() + 2).
+        append(PathSeperator).
         append(parent).
         append(PathSeperator).
         append(child).
