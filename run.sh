@@ -5,7 +5,7 @@ build() {
 }
 
 run() {
-  ./bin/ycsb load tachyon -P workloads/workloadd -p address=tachyon://master:19998
+  ./bin/ycsb load tachyon -P workloads/workloadd -p uri=tachyon://master:19998
 }
 
 main() {
