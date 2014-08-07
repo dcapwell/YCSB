@@ -57,27 +57,29 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <thrift.version>0.8.0</thrift.version>
     <hypertable.version>0.9.5.6</hypertable.version>
+    <tachyon.version>0.5.0</tachyon.version>
   </properties>
 
   <modules>
     <!--module>build-tools</module-->
-    <module>cassandra</module>
+    <!--<module>cassandra</module>-->
     <module>core</module>
-    <module>hbase</module>
-    <module>hypertable</module>
-    <module>accumulo</module>
-    <module>dynamodb</module>
-    <module>elasticsearch</module>
+    <!--<module>hbase</module>-->
+    <!--<module>hypertable</module>-->
+    <!--<module>accumulo</module>-->
+    <!--<module>dynamodb</module>-->
+    <!--<module>elasticsearch</module>-->
     <!--<module>gemfire</module>-->
-    <module>infinispan</module>
-    <module>jdbc</module>
-    <module>mapkeeper</module>
-    <module>mongodb</module>
-    <module>orientdb</module>
+    <!--<module>infinispan</module>-->
+    <!--<module>jdbc</module>-->
+    <!--<module>mapkeeper</module>-->
+    <!--<module>mongodb</module>-->
+    <!--<module>orientdb</module>-->
     <!--module>nosqldb</module-->
-    <module>redis</module>
-    <module>voldemort</module>
-    <module>distribution</module>
+    <!--<module>redis</module>-->
+    <!--<module>voldemort</module>-->
+    <module>tachyon</module>
+    <!--<module>distribution</module>-->
   </modules>
 
   <build>
@@ -108,6 +110,17 @@
             </goals>
           </execution>
         </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-assembly-plugin</artifactId>
+        <version>${maven.assembly.version}</version>
+        <configuration>
+          <descriptorRefs>
+            <descriptorRef>jar-with-dependencies</descriptorRef>
+          </descriptorRefs>
+          <skip>true</skip>
+        </configuration>
       </plugin>
     </plugins>
   </build>
