@@ -35,8 +35,27 @@ public final class TachyonClient extends DB {
 
   private TachyonFS fileSystem;
 
+  private TachyonFile get(final String path) throws IOException {
+    TachyonFile file = fileSystem.getFile(path);
+    if (file == null) {
+      int id = fileSystem.createFile(path);
+      file = fileSystem.getFile(id);
+    }
+    return file;
+  }
+
+  private TachyonFile get(final String table, final String key) throws IOException {
+    return get(path(table, key));
+  }
+
+  private void log(final String msg) {
+    System.out.println(msg);
+  }
+
   @Override
   public void init() throws DBException {
+    log("Running Init");
+
     final String uri = prop("uri");
     try {
       fileSystem = TachyonFS.get(uri);
@@ -47,6 +66,8 @@ public final class TachyonClient extends DB {
 
   @Override
   public void cleanup() throws DBException {
+    log("Running cleanup");
+
     try {
       fileSystem.close();
     } catch (TException e) {
@@ -58,9 +79,11 @@ public final class TachyonClient extends DB {
   public int insert(final String table,
                     final String key,
                     final HashMap<String, ByteIterator> values) {
+    log("Running insert");
+
     DataOutputStream stream = null;
     try {
-      final TachyonFile file = fileSystem.getFile(path(table, key));
+      final TachyonFile file = get(table, key);
       stream = new DataOutputStream(file.getOutStream(WriteType.MUST_CACHE));
       writeTo(stream, values);
     } catch (IOException e) {
@@ -77,9 +100,11 @@ public final class TachyonClient extends DB {
                   final String key,
                   final Set<String> fields,
                   final HashMap<String, ByteIterator> result) {
+    log("Running read");
+
     DataInputStream stream = null;
     try {
-      final TachyonFile file = fileSystem.getFile(path(table, key));
+      final TachyonFile file = get(table, key);
       stream = new DataInputStream(createStream(file, ReadType.NO_CACHE));
       readInto(stream, result);
     } catch (IOException e) {
@@ -98,6 +123,7 @@ public final class TachyonClient extends DB {
                   final Set<String> fields,
                   final Vector<HashMap<String, ByteIterator>> result) {
     //TODO what makes sense for scan?
+    log("Running scan");
     return Ok;
   }
 
@@ -106,11 +132,13 @@ public final class TachyonClient extends DB {
                     final String key,
                     final HashMap<String, ByteIterator> values) {
     // tachyon overrides as the default...
+    log("Running update");
     return insert(table, key, values);
   }
 
   @Override
   public int delete(final String table, final String key) {
+    log("Running delete");
     try {
       if (!fileSystem.delete(path(table, key), false)) {
         return NoMatchingRecord;
