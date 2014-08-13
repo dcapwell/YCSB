@@ -5,7 +5,13 @@ build() {
 }
 
 run() {
-  ./bin/ycsb load tachyon -P workloads/workloadd -p uri=tachyon://master:19998
+  # cleanup
+  pushd /opt/tachyon/tachyon-0.6.0-SNAPSHOT/
+  ./bin/tachyon tfs rm usertable
+  popd
+
+  # generate
+  ./bin/ycsb load tachyon -P workloads/workloadd -p uri=tachyon://vm1:19998 2>&1
 }
 
 main() {

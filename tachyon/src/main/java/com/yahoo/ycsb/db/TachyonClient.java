@@ -11,6 +11,7 @@ import tachyon.client.TachyonFS;
 import tachyon.client.TachyonFile;
 import tachyon.client.WriteType;
 import tachyon.org.apache.thrift.TException;
+import tachyon.thrift.FileDoesNotExistException;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -36,8 +37,14 @@ public final class TachyonClient extends DB {
   private TachyonFS fileSystem;
 
   private TachyonFile get(final String path) throws IOException {
-    TachyonFile file = fileSystem.getFile(path);
-    if (file == null) {
+    TachyonFile file;
+    try {
+      file = fileSystem.getFile(path);
+      if (file == null) {
+        int id = fileSystem.createFile(path);
+        file = fileSystem.getFile(id);
+      }
+    } catch (IOException e) {
       int id = fileSystem.createFile(path);
       file = fileSystem.getFile(id);
     }
@@ -162,7 +169,10 @@ public final class TachyonClient extends DB {
                               final HashMap<String, ByteIterator> values) throws IOException {
     stream.writeInt(values.size());
 
+    int counter = 0;
     for (final Map.Entry<String, ByteIterator> e : values.entrySet()) {
+      if (counter++  > 4) break;
+
       byte[] data = e.getValue().toArray();
 
       stream.writeUTF(e.getKey());
