@@ -32,16 +32,16 @@ public final class TachyonClient extends DB {
   private static final int HttpError = -2;
   private static final int NoMatchingRecord = -3;
 
-  private static final int MAX_WRITES = 4;
-
   private static final char PathSeperator = '/';
 
   private TachyonFS fileSystem;
+  private int maxWrites = 4;
 
   @Override
   public void init() throws DBException {
     log("Running Init");
 
+    maxWrites = prop("maxWrites", 4);
     final String uri = prop("uri");
     try {
       fileSystem = TachyonFS.get(uri);
@@ -181,13 +181,22 @@ public final class TachyonClient extends DB {
     return checkNotNull(value, "Error, must specify '" + key + "'");
   }
 
-  private static void writeTo(final DataOutputStream stream,
+  private int prop(final String key, int defaultValue) {
+    String value = getProperties().getProperty(key);
+    try {
+      return Integer.parseInt(value);
+    } catch (NumberFormatException e) {
+      return defaultValue;
+    }
+  }
+
+  private void writeTo(final DataOutputStream stream,
                               final HashMap<String, ByteIterator> values) throws IOException {
     stream.writeInt(values.size());
 
     int counter = 0;
     for (final Map.Entry<String, ByteIterator> e : values.entrySet()) {
-      if (counter++  > MAX_WRITES) break;
+      if (counter++  > maxWrites) break;
 
       byte[] data = e.getValue().toArray();
 
@@ -197,10 +206,10 @@ public final class TachyonClient extends DB {
     }
   }
 
-  private static void readInto(final DataInputStream stream,
+  private void readInto(final DataInputStream stream,
                                final HashMap<String, ByteIterator> result) throws IOException {
     final int size = stream.readInt();
-    for (int i = 0; i < size && i < MAX_WRITES; i++) {
+    for (int i = 0; i < size && i < maxWrites; i++) {
       String key = stream.readUTF();
       byte[] data = new byte[stream.readInt()];
       stream.read(data);

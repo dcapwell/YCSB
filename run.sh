@@ -2,8 +2,11 @@
 
 export WORKLOAD=${WORKLOAD:-read-stress}
 export NUM_THREADS=${NUM_THREADS:-$(nproc)}
+export FIELD_COUNT=10
+export FIELD_LENGTH=100
+export MAX_WRITES=4
 
-export YCSB_OPS="-P workloads/${WORKLOAD} -p uri=tachyon://vm1:19998 -threads $NUM_THREADS -s"
+export YCSB_OPS="-P workloads/${WORKLOAD} -p maxWrites=${MAX_WRITES} -p fieldcount=${FIELD_COUNT} -p fieldlength=${FIELD_LENGTH} -p uri=tachyon://vm1:19998 -threads $NUM_THREADS -s"
 
 build() {
   mvn clean install && mvn assembly:single
