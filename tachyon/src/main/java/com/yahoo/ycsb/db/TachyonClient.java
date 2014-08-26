@@ -1,8 +1,6 @@
 package com.yahoo.ycsb.db;
 
-import com.google.common.base.Throwables;
 import com.google.common.io.Closeables;
-import com.yahoo.ycsb.ByteArrayByteIterator;
 import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.DB;
 import com.yahoo.ycsb.DBException;
@@ -35,13 +33,11 @@ public final class TachyonClient extends DB {
   private static final char PathSeperator = '/';
 
   private TachyonFS fileSystem;
-  private int maxWrites = 4;
 
   @Override
   public void init() throws DBException {
     log("Running Init");
 
-    maxWrites = prop("maxWrites", 4);
     final String uri = prop("uri");
     try {
       fileSystem = TachyonFS.get(uri);
@@ -67,8 +63,14 @@ public final class TachyonClient extends DB {
                     final HashMap<String, ByteIterator> values) {
     log("Running insert");
 
-    final TachyonFile file = getAndCreateFile(path(table, key));
-    return write(file, values);
+    final TachyonFile file;
+    try {
+      file = getAndCreateFile(path(table, key));
+      return write(file, values);
+    } catch (IOException e) {
+      log(e, "Error inserting path " + path(table, key));
+      return ServerError;
+    }
   }
 
   @Override
@@ -82,9 +84,9 @@ public final class TachyonClient extends DB {
     try {
       final TachyonFile file = getFile(path(table, key));
       stream = new DataInputStream(createStream(file, ReadType.NO_CACHE));
-      readInto(stream, result);
+      readInto(stream);
     } catch (IOException e) {
-      log(e, "Error accessing path " + path(table, key));
+      log(e, "Error reading path " + path(table, key));
       return ServerError;
     } finally {
       Closeables.closeQuietly(stream);
@@ -107,10 +109,15 @@ public final class TachyonClient extends DB {
   public int update(final String table,
                     final String key,
                     final HashMap<String, ByteIterator> values) {
-    // tachyon overrides as the default...
-    log("Running update");;
-    final TachyonFile file = getAndUpdateFile(path(table, key));
-    return write(file, values);
+    log("Running update");
+    final TachyonFile file;
+    try {
+      file = getAndUpdateFile(path(table, key));
+      return write(file, values);
+    } catch (IOException e) {
+      log(e, "Error updating path " + path(table, key));
+      return ServerError;
+    }
   }
 
   @Override
@@ -135,7 +142,7 @@ public final class TachyonClient extends DB {
     try {
       stream = new DataOutputStream(file.getOutStream(WriteType.MUST_CACHE));
       writeTo(stream, values);
-    } catch(IOException e) {
+    } catch (IOException e) {
       log(e, "Error accessing path " + file.getPath());
       return ServerError;
     } finally {
@@ -144,32 +151,23 @@ public final class TachyonClient extends DB {
     return Ok;
   }
 
-  private TachyonFile getFile(final String path) {
-    try {
-      TachyonFile file = fileSystem.getFile(path);
-      return file;
-    } catch(IOException e) {
-      throw Throwables.propagate(e);
+  private TachyonFile getFile(final String path) throws IOException {
+    TachyonFile file = fileSystem.getFile(path);
+    if (file == null) {
+      throw new FileNotFoundException("File at path '" + path + "' is null.");
     }
+    return file;
   }
 
-  private TachyonFile getAndCreateFile(final String path) {
-    try {
-      int id = fileSystem.createFile(path);
-      TachyonFile file = fileSystem.getFile(id);
-      return file;
-    } catch(IOException e) {
-      throw Throwables.propagate(e);
-    }
+  private TachyonFile getAndCreateFile(final String path) throws IOException {
+    int id = fileSystem.createFile(path);
+    TachyonFile file = fileSystem.getFile(id);
+    return file;
   }
 
-  private TachyonFile getAndUpdateFile(final String path) {
-    try {
-      fileSystem.delete(path, false);
-      return getAndCreateFile(path);
-    } catch(IOException e) {
-      throw Throwables.propagate(e);
-    }
+  private TachyonFile getAndUpdateFile(final String path) throws IOException {
+    fileSystem.delete(path, false);
+    return getAndCreateFile(path);
   }
 
   private void log(final String msg) {
@@ -181,23 +179,11 @@ public final class TachyonClient extends DB {
     return checkNotNull(value, "Error, must specify '" + key + "'");
   }
 
-  private int prop(final String key, int defaultValue) {
-    String value = getProperties().getProperty(key);
-    try {
-      return Integer.parseInt(value);
-    } catch (NumberFormatException e) {
-      return defaultValue;
-    }
-  }
-
   private void writeTo(final DataOutputStream stream,
-                              final HashMap<String, ByteIterator> values) throws IOException {
+                       final HashMap<String, ByteIterator> values) throws IOException {
     stream.writeInt(values.size());
 
-    int counter = 0;
     for (final Map.Entry<String, ByteIterator> e : values.entrySet()) {
-      if (counter++  > maxWrites) break;
-
       byte[] data = e.getValue().toArray();
 
       stream.writeUTF(e.getKey());
@@ -206,14 +192,19 @@ public final class TachyonClient extends DB {
     }
   }
 
-  private void readInto(final DataInputStream stream,
-                               final HashMap<String, ByteIterator> result) throws IOException {
+  private final byte[] readBuffer = new byte[8000000]; // 8mb
+
+  private void readInto(final DataInputStream stream) throws IOException {
     final int size = stream.readInt();
-    for (int i = 0; i < size && i < maxWrites; i++) {
-      String key = stream.readUTF();
-      byte[] data = new byte[stream.readInt()];
-      stream.read(data);
-      result.put(key, new ByteArrayByteIterator(data));
+    int length;
+    for (int i = 0; i < size; i++) {
+      stream.readUTF();
+      length = stream.readInt();
+      while (length > readBuffer.length) {
+        stream.read(readBuffer);
+        length = length - readBuffer.length;
+      }
+      stream.read(readBuffer, 0, length);
     }
   }
 
