@@ -61,11 +61,9 @@ public final class TachyonClient extends DB {
   public int insert(final String table,
                     final String key,
                     final HashMap<String, ByteIterator> values) {
-    log("Running insert");
-
     final TachyonFile file;
     try {
-      file = getAndCreateFile(path(table, key));
+      file = getFile(path(table, key));
       return write(file, values);
     } catch (IOException e) {
       log(e, "Error inserting path " + path(table, key));
@@ -78,8 +76,6 @@ public final class TachyonClient extends DB {
                   final String key,
                   final Set<String> fields,
                   final HashMap<String, ByteIterator> result) {
-    log("Running read");
-
     DataInputStream stream = null;
     try {
       final TachyonFile file = getFile(path(table, key));
@@ -101,7 +97,6 @@ public final class TachyonClient extends DB {
                   final Set<String> fields,
                   final Vector<HashMap<String, ByteIterator>> result) {
     //TODO what makes sense for scan?
-    log("Running scan");
     return Ok;
   }
 
@@ -109,10 +104,12 @@ public final class TachyonClient extends DB {
   public int update(final String table,
                     final String key,
                     final HashMap<String, ByteIterator> values) {
-    log("Running update");
     final TachyonFile file;
     try {
-      file = getAndUpdateFile(path(table, key));
+      // delete before writing
+      fileSystem.delete(path(table, key), false);
+
+      file = getFile(path(table, key));
       return write(file, values);
     } catch (IOException e) {
       log(e, "Error updating path " + path(table, key));
@@ -122,7 +119,6 @@ public final class TachyonClient extends DB {
 
   @Override
   public int delete(final String table, final String key) {
-    log("Running delete");
     try {
       if (!fileSystem.delete(path(table, key), false)) {
         return NoMatchingRecord;
@@ -154,24 +150,15 @@ public final class TachyonClient extends DB {
   private TachyonFile getFile(final String path) throws IOException {
     TachyonFile file = fileSystem.getFile(path);
     if (file == null) {
-      throw new FileNotFoundException("File at path '" + path + "' is null.");
+      file = createFile(path);
     }
     return file;
   }
 
-  private TachyonFile getAndCreateFile(final String path) throws IOException {
+  private TachyonFile createFile(final String path) throws IOException {
     int id = fileSystem.createFile(path);
     TachyonFile file = fileSystem.getFile(id);
     return file;
-  }
-
-  private TachyonFile getAndUpdateFile(final String path) throws IOException {
-    fileSystem.delete(path, false);
-    return getAndCreateFile(path);
-  }
-
-  private void log(final String msg) {
-    System.out.println(msg);
   }
 
   private String prop(final String key) {
@@ -198,7 +185,7 @@ public final class TachyonClient extends DB {
     final int size = stream.readInt();
     int length;
     for (int i = 0; i < size; i++) {
-      stream.readUTF();
+      stream.readUTF(); // key
       length = stream.readInt();
       while (length > readBuffer.length) {
         stream.read(readBuffer);
@@ -213,6 +200,10 @@ public final class TachyonClient extends DB {
     // need to avoid the local read path
     // https://tachyon.atlassian.net/browse/TACHYON-53
     return RemoteBlockInStreams.create(file, readType, 0);
+  }
+
+  private static void log(final String msg) {
+    System.out.println(msg);
   }
 
   private static void log(final Exception e, final String msg) {
