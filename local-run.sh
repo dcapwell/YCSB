@@ -7,7 +7,8 @@ export FIELD_COUNT=4
 export FIELD_LENGTH=100
 export TACHYON_HOME=/Users/dcapwell/src/github/tachyon-dcapwell/assembly/target/tachyon-0.6.0-SNAPSHOT/tachyon-0.6.0-SNAPSHOT
 
-export YCSB_OPS="-P workloads/${WORKLOAD} -p fieldcount=${FIELD_COUNT} -p fieldlength=${FIELD_LENGTH} -p uri=tachyon://localhost:19998 -threads $NUM_THREADS -s"
+#export YCSB_OPS="-P workloads/${WORKLOAD} -p fieldcount=${FIELD_COUNT} -p fieldlength=${FIELD_LENGTH} -p uri=tachyon://localhost:19998 -threads $NUM_THREADS -s"
+export YCSB_OPS="-P workloads/${WORKLOAD} -p fieldcount=${FIELD_COUNT} -p fieldlength=${FIELD_LENGTH} -p uri=tachyon://sjc-w11.dh.greenplum.com:19998 -threads $NUM_THREADS -s"
 
 build() {
   mvn clean install && mvn assembly:single

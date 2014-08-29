@@ -52,7 +52,7 @@ public final class TachyonClient extends DB {
 
     try {
       fileSystem.close();
-    } catch (TException e) {
+    } catch (IOException e) {
       throw new DBException(e);
     }
   }
@@ -62,13 +62,37 @@ public final class TachyonClient extends DB {
                     final String key,
                     final HashMap<String, ByteIterator> values) {
     final TachyonFile file;
+    String path = path(table, key);
     try {
-      file = getFile(path(table, key));
-      return write(file, values);
+      file = getFile(path);
+      int rt = write(file, values);
+      requestLog("insert", path);
+      return rt;
     } catch (IOException e) {
-      log(e, "Error inserting path " + path(table, key));
+      requestLog("insert", path, e);
       return ServerError;
     }
+  }
+
+  private void requestLog(String type, String path) {
+    System.out.println(new StringBuilder().append(type).append(" : ").append(path));
+  }
+
+  private void requestLog(String type, String path, IOException e) {
+    System.out.println(
+        new StringBuilder()
+            .append(type)
+            .append(" : ")
+            .append(path)
+            .append(" !! ")
+            .append(summarize(e)));
+  }
+
+  private static StringBuilder summarize(Throwable t) {
+    return new StringBuilder()
+        .append(t.getClass().getSimpleName())
+        .append(": ")
+        .append(t.getMessage());
   }
 
   @Override
@@ -77,12 +101,14 @@ public final class TachyonClient extends DB {
                   final Set<String> fields,
                   final HashMap<String, ByteIterator> result) {
     DataInputStream stream = null;
+    String path = path(table, key);
     try {
-      final TachyonFile file = getFile(path(table, key));
+      final TachyonFile file = getFile(path);
       stream = new DataInputStream(createStream(file, ReadType.NO_CACHE));
       readInto(stream);
+      requestLog("read", path);
     } catch (IOException e) {
-      log(e, "Error reading path " + path(table, key));
+      requestLog("read", path, e);
       return ServerError;
     } finally {
       Closeables.closeQuietly(stream);
@@ -105,42 +131,46 @@ public final class TachyonClient extends DB {
                     final String key,
                     final HashMap<String, ByteIterator> values) {
     final TachyonFile file;
+    String path = path(table, key);
     try {
       // delete before writing
-      fileSystem.delete(path(table, key), false);
+      fileSystem.delete(path, false);
 
       file = getFile(path(table, key));
-      return write(file, values);
+      int rt = write(file, values);
+      requestLog("update", path);
+      return rt;
     } catch (IOException e) {
-      log(e, "Error updating path " + path(table, key));
+      requestLog("update", path, e);
       return ServerError;
     }
   }
 
   @Override
   public int delete(final String table, final String key) {
+    String path = path(table, key);
     try {
-      if (!fileSystem.delete(path(table, key), false)) {
+      if (!fileSystem.delete(path, false)) {
+        requestLog("delete", path, new IOException("Unable to delete file at path " + path));
         return NoMatchingRecord;
       }
+      requestLog("delete", path);
     } catch (FileNotFoundException e) {
-      log(e, "Error deleting path " + path(table, key));
+      requestLog("delete", path, e);
       return NoMatchingRecord;
     } catch (IOException e) {
-      log(e, "Error deleting path " + path(table, key));
+      requestLog("delete", path, e);
       return ServerError;
     }
     return Ok;
   }
 
-  private int write(final TachyonFile file, final HashMap<String, ByteIterator> values) {
+  private int write(final TachyonFile file, final HashMap<String, ByteIterator> values)
+      throws IOException {
     DataOutputStream stream = null;
     try {
       stream = new DataOutputStream(file.getOutStream(WriteType.MUST_CACHE));
       writeTo(stream, values);
-    } catch (IOException e) {
-      log(e, "Error accessing path " + file.getPath());
-      return ServerError;
     } finally {
       Closeables.closeQuietly(stream);
     }
@@ -206,10 +236,10 @@ public final class TachyonClient extends DB {
     System.out.println(msg);
   }
 
-  private static void log(final Exception e, final String msg) {
-    System.err.println(msg + ": " + e.getMessage());
-    e.printStackTrace();
-  }
+//  private static void log(final Exception e, final String msg) {
+//    System.err.println(msg + ": " + e.getMessage());
+//    e.printStackTrace();
+//  }
 
   private static String path(final String parent, final String child) {
     return new StringBuilder(parent.length() + child.length() + 2).
@@ -218,5 +248,20 @@ public final class TachyonClient extends DB {
         append(PathSeperator).
         append(child).
         toString();
+  }
+
+  public static void main(String[] args) {
+    com.yahoo.ycsb.Client.main(input(
+        "-db", TachyonClient.class.getName(),
+        "-P", "workloads/read-stress",
+        "-p", "fieldcount=4",
+        "-p", "fieldlength=100",
+        "-p", "uri=tachyon://sjc-w11.dh.greenplum.com:19998",
+        "-threads", "8",
+        "-s"
+    ));
+  }
+  private static String[] input(String... data) {
+    return data;
   }
 }

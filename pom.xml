@@ -57,7 +57,8 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <thrift.version>0.8.0</thrift.version>
     <hypertable.version>0.9.5.6</hypertable.version>
-    <tachyon.version>0.5.0</tachyon.version>
+    <!--<tachyon.version>0.5.0</tachyon.version>-->
+    <tachyon.version>0.6.0-SNAPSHOT</tachyon.version>
   </properties>
 
   <modules>
