@@ -17,7 +17,7 @@
       <version>${tachyon.version}</version>
       <classifier>jar-with-dependencies</classifier>
       <scope>system</scope>
-      <systemPath>/Users/dcapwell/src/github/tachyon-dcapwell/core/target/tachyon-0.6.0-SNAPSHOT-jar-with-dependencies.jar</systemPath>
+      <systemPath>/Users/dcapwell/src/github/tachyon/core/target/tachyon-0.6.0-SNAPSHOT-jar-with-dependencies.jar</systemPath>
     </dependency>
     <dependency>
       <groupId>org.apache.hadoop</groupId>
