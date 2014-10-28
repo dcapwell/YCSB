@@ -11,8 +11,8 @@ case "`uname`" in
   ;;
 esac
 
-export FIELD_COUNT=${FIELD_COUNT:-4}
-export FIELD_LENGTH=${FIELD_LENGTH:-100}
+export FIELD_COUNT=${FIELD_COUNT:-10}
+export FIELD_LENGTH=${FIELD_LENGTH:-1000}
 export TACHYON_HOME=${TACHYON_HOME:-/opt/tachyon/tachyon-0.6.0-SNAPSHOT}
 
 export MASTER_HOSTNAME=${MASTER_HOSTNAME:-$(hostname -f)}
