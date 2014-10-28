@@ -18,4 +18,4 @@ export TACHYON_HOME=${TACHYON_HOME:-/opt/tachyon/tachyon-0.6.0-SNAPSHOT}
 export MASTER_HOSTNAME=${MASTER_HOSTNAME:-$(hostname -f)}
 export MASTER_ADDRESS=${MASTER_ADDRESS:-"tachyon://$MASTER_HOSTNAME:19998"}
 
-export YCSB_OPS=${YCSB_OPS:-"-P workloads/${WORKLOAD} -p fieldcount=${FIELD_COUNT} -p fieldlength=${FIELD_LENGTH} -p uri=$ MASTER_ADDRESS -threads $NUM_THREADS -s"}
+export YCSB_OPS=${YCSB_OPS:-"-P workloads/${WORKLOAD} -p fieldcount=${FIELD_COUNT} -p fieldlength=${FIELD_LENGTH} -p uri=$MASTER_ADDRESS -threads $NUM_THREADS -s"}
