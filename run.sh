@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+set -x
+set -e
+
 bin=`dirname "$0"`
 bin=`cd "$bin">/dev/null; pwd`
 
@@ -16,11 +19,11 @@ clean() {
 }
 
 load() {
-  ./bin/ycsb load tachyon $YCSB_OPS 1> load.log 2> load.err
+  ./bin/ycsb load tachyon $YCSB_OPS 1> load.log
 }
 
 run() {
-  ./bin/ycsb run tachyon $YCSB_OPS 1> run.log 2> run.err
+  ./bin/ycsb run tachyon $YCSB_OPS 1> run.log
 }
 
 main() {
