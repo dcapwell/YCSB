@@ -7,6 +7,10 @@ RUN \
   wget 'http://mirrors.ibiblio.org/apache/maven/maven-3/3.2.1/binaries/apache-maven-3.2.1-bin.tar.gz' && \
   tar zxvf apache-maven-3.2.1-bin.tar.gz
 
+RUN \
+  yum install -y 'http://dl.fedoraproject.org/pub/epel/6/x86_64/epel-release-6-8.noarch.rpm' && \
+  yum install -y openssh-clients sshpass
+
 ENV JAVA_HOME /usr/lib/jvm/jre-1.7.0-openjdk.x86_64
 ENV M2_HOME /opt/maven/apache-maven-3.2.1
 ENV PATH /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/rvm/rubies/ruby-1.9.3-p547/bin:/opt/maven/apache-maven-3.2.1/bin
