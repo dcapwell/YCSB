@@ -19,11 +19,11 @@ clean() {
 }
 
 load() {
-  ./bin/ycsb load tachyon $YCSB_OPS 1> load.log
+  ./bin/ycsb load tachyon $LOAD_OPS 1> load.log
 }
 
 run() {
-  ./bin/ycsb run tachyon $YCSB_OPS 1> run.log
+  ./bin/ycsb run tachyon $RUN_OPS 1> run.log
 }
 
 main() {
