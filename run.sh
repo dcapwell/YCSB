@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 
-set -x
 set -e
 
 bin=`dirname "$0"`
