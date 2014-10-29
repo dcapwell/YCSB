@@ -13,9 +13,7 @@ build() {
 }
 
 clean() {
-  pushd $TACHYON_HOME
-  ./bin/tachyon tfs rm /usertable
-  popd
+  $TACHYON_HOME/bin/tachyon tfs rm /usertable
 }
 
 load() {
